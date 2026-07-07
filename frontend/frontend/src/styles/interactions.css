@@ -1,0 +1,38 @@
+.clickable-card {
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  cursor: pointer;
+}
+
+.clickable-card:hover {
+  background-color: #253449 !important;
+}
+
+.clickable-card:active {
+  background-color: #2d3f5c !important;
+  transform: scale(0.98);
+}
+
+.clickable-btn {
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  cursor: pointer;
+}
+
+.clickable-btn:hover {
+  filter: brightness(1.1);
+}
+
+.clickable-btn:active {
+  transform: scale(0.97);
+  filter: brightness(0.95);
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #2d3f5c 50%, #1e293b 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

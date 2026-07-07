@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from routes import chat
+from routes import parse_resume
 
 
 # ✅ Fail fast if key is missing — no more silent 500s
@@ -39,6 +40,9 @@ app.add_middleware(
 
 # Only the chat router — nothing else
 app.include_router(chat.router)
+
+# Algorithmic resume parser — no AI required
+app.include_router(parse_resume.router)
 
 
 @app.get("/")

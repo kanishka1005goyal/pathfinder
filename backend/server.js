@@ -1,19 +1,18 @@
 import dotenv from "dotenv";
-
 dotenv.config();
 
+import { setServers } from "node:dns/promises";
+setServers(["1.1.1.1", "8.8.8.8"]);
 
 import express from "express";
-
 import cors from "cors";
-
 import mongoose from "mongoose";
 
 import authRoutes from "./routes/authRoutes.js";
-
+import userRoutes from "./routes/userRoutes.js";
 import resumeRoutes from "./routes/resumeRoutes.js";
-
-
+import skillGapRoutes from "./routes/skillGapRoutes.js";
+import { admin, adminRouter } from "./admin.js";
 const app = express();
 
 app.use(cors());
@@ -35,10 +34,12 @@ console.log("✅ GROQ_API_KEY loaded:", process.env.GROQ_API_KEY.slice(0, 7) + "
 // ✅ Auth + resume only — chat is handled by FastAPI on port 8000
 
 app.use("/api/auth", authRoutes);
-
+app.use("/api/user", userRoutes);
 app.use("/api/resume", resumeRoutes);
 
+app.use('/api/skill-gap', skillGapRoutes);
 
+app.use(admin.options.rootPath, adminRouter);
 mongoose.connect(process.env.MONGO_URI)
 
   .then(() => {
@@ -49,8 +50,7 @@ mongoose.connect(process.env.MONGO_URI)
 
     console.log("➡️  Chat handled by FastAPI on port 8000");
 
-    app.listen(5000);
-
+  app.listen(5000, () => console.log('Server running on port 5000'));
   })
 
   .catch((err) => console.error("❌ DB connection error:", err));

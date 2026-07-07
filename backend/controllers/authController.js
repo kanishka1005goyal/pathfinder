@@ -10,12 +10,20 @@ export const registerUser = async (req, res) => {
 
     const hashed = await bcrypt.hash(password, 10);
     const user = await User.create({ name, email, password: hashed });
-    res.status(201).json({ message: "Registered successfully", userId: user._id });
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    res.status(201).json({
+      message: "Registered successfully",
+      token,
+      user: { id: user._id, name: user.name, email: user.email },
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server Error" });
   }
 };
+
+// loginUser same rehne do jaisa hai
 
 export const loginUser = async (req, res) => {
   try {

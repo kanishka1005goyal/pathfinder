@@ -60,8 +60,13 @@ export default function UploadTab() {
       const formData = new FormData();
       formData.append("resume", file);
 
+      const token = localStorage.getItem("token");   // ← ye line add karo
+
       const res = await axios.post("http://localhost:5000/api/resume/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`,           // ← ye line add karo
+        },
         onUploadProgress: (e) =>
           setProgress(Math.round((e.loaded * 100) / e.total)),
       });

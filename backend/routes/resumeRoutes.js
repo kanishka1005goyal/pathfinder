@@ -1,54 +1,30 @@
 import express from "express";
 import multer from "multer";
-import pdfParse from "pdf-parse";
+import pdfParse from "pdf-parse/lib/pdf-parse.js";
 import Groq from "groq-sdk";
-import mongoose from "mongoose";
 import mammoth from "mammoth";
-import Tesseract from "tesseract.js";
+import authMiddleware from "../middleware/authMiddleware.js";
+import Resume from "../models/Resume.js";
 
 const router = express.Router();
 
 console.log("GROQ_API_KEY loaded:", process.env.GROQ_API_KEY ? "YES" : "MISSING");
 
-// ── Resume Schema ──────────────────────────────────────────────────────────
-const Resume = mongoose.model(
-  "Resume",
-  new mongoose.Schema({
-    filename: String,
-    parsedText: String,
-    atsScore: Number,
-    breakdown: {
-      keywordMatch: Number,
-      formatting: Number,
-      skillsRelevance: Number,
-      experienceMatch: Number,
-    },
-    missingSkills: [String],
-    suggestions: [String],
-    strengths: [String],
-    uploadedAt: { type: Date, default: Date.now },
-  })
-);
-
-// ── Multer ─────────────────────────────────────────────────────────────────
+// ── Multer ──
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
- fileFilter: (req, file, cb) => {
-  const allowedTypes = [
-    "application/pdf",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  ];
-
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error("Only PDF and DOCX files allowed"));
-  }
-},
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+    if (allowedTypes.includes(file.mimetype)) cb(null, true);
+    else cb(new Error("Only PDF and DOCX files allowed"));
+  },
 });
 
-// ── Groq analysis ──────────────────────────────────────────────────────────
+// ── Groq analysis (single, top-level function) ──
 async function analyzeWithGroq(resumeText) {
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -71,14 +47,15 @@ You are an ATS (Applicant Tracking System) analyzer. Analyze the following resum
 Resume:
 ${resumeText.slice(0, 6000)}
 
-Return ONLY valid JSON, no extra text, no markdown fences.
+Return ONLY valid JSON, no extra text, no markdown fences, no explanation.
 `;
 
   const completion = await groq.chat.completions.create({
-   model: "llama-3.3-70b-versatile",
+    model: "llama-3.3-70b-versatile",
     messages: [{ role: "user", content: prompt }],
     temperature: 0.3,
-    max_tokens: 1024,
+    max_tokens: 2048,
+    response_format: { type: "json_object" },
   });
 
   const raw = completion.choices[0].message.content
@@ -86,64 +63,41 @@ Return ONLY valid JSON, no extra text, no markdown fences.
     .replace(/```/g, "")
     .trim();
 
-  return JSON.parse(raw);
+  try {
+    return JSON.parse(raw);
+  } catch (parseErr) {
+    console.error("Groq raw output that failed to parse:\n", raw);
+    throw new Error("Groq returned malformed JSON. Please retry.");
+  }
 }
 
-// ── POST /api/resume/upload ────────────────────────────────────────────────
-router.post("/upload", upload.single("resume"), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: "No file uploaded." });
-  }
+// ── POST /api/resume/upload ──
+router.post("/upload", authMiddleware, upload.single("resume"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ message: "No file uploaded." });
 
   try {
-let resumeText = "";
+    let resumeText = "";
+    if (req.file.mimetype === "application/pdf") {
+      const parsed = await pdfParse(req.file.buffer);
+      resumeText = parsed.text;
+    } else {
+      const result = await mammoth.extractRawText({ buffer: req.file.buffer });
+      resumeText = result.value;
+    }
 
-// PDF parsing
-if (req.file.mimetype === "application/pdf") {
-  const parsed = await pdfParse(req.file.buffer);
+    if (!resumeText || resumeText.trim().length < 100) {
+      return res.status(422).json({ message: "Could not extract text. Please upload a text-based PDF or DOCX resume." });
+    }
 
-  console.log("========== PDF DEBUG ==========");
-  console.log("File:", req.file.originalname);
-  console.log("Pages:", parsed.numpages);
-  console.log("Text Length:", parsed.text.length);
-  console.log("===============================");
+    const lowerText = resumeText.toLowerCase();
+    if (!lowerText.includes("skills") && !lowerText.includes("education") && !lowerText.includes("experience") && !lowerText.includes("projects")) {
+      return res.status(400).json({ message: "Uploaded file does not appear to be a resume." });
+    }
 
-  resumeText = parsed.text;
-}
-
-// DOCX parsing
-else if (
-  req.file.mimetype ===
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-) {
-  const result = await mammoth.extractRawText({
-    buffer: req.file.buffer,
-  });
-
-  resumeText = result.value;
-}
-
-  if (!resumeText || resumeText.trim().length < 100) {
-  return res.status(422).json({
-    message:
-      "This PDF appears to be image-based or scanned. Please upload a text-based PDF or DOCX resume.",
-  });
-}
- const lowerText = resumeText.toLowerCase();
-
-if (
-  !lowerText.includes("skills") &&
-  !lowerText.includes("education") &&
-  !lowerText.includes("experience") &&
-  !lowerText.includes("projects")
-) {
-  return res.status(400).json({
-    message: "Uploaded file does not appear to be a resume.",
-  });
-}
-    const atsResult = await analyzeWithGroq(resumeText);
+    const atsResult = await analyzeWithGroq(resumeText);   // ← ye line hi missing thi
 
     const resume = await Resume.create({
+      user: req.userId,
       filename: req.file.originalname,
       parsedText: resumeText,
       atsScore: atsResult.overallScore,
@@ -153,32 +107,35 @@ if (
       strengths: atsResult.strengths,
     });
 
-    res.json({
-      success: true,
-      resumeId: resume._id,
-      filename: req.file.originalname,
-      atsResult,
-    });
+    res.json({ success: true, resumeId: resume._id, filename: req.file.originalname, atsResult });
   } catch (err) {
-    console.error("Upload error:", err);
-
+    console.error("Upload error:", err.message);
     if (err instanceof SyntaxError) {
-      return res.status(502).json({ message: "AI returned malformed JSON. Please retry." });
+      return res.status(502).json({ message: "Groq returned malformed JSON. Please retry." });
     }
-
     res.status(500).json({ message: err.message || "Internal server error." });
   }
- 
 });
 
-// ── GET /api/resume/report/:id ─────────────────────────────────────────────
-router.get("/report/:id", async (req, res) => {
+// ── GET /api/resume/history — only this user's resumes ──
+router.get("/history", authMiddleware, async (req, res) => {
   try {
-    const resume = await Resume.findById(req.params.id);
+    const resumes = await Resume.find({ user: req.userId })
+      .sort({ uploadedAt: -1 })
+      .select("filename atsScore uploadedAt breakdown");
+    res.json(resumes);
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Internal server error." });
+  }
+});
+
+// ── GET /api/resume/report/:id ──
+router.get("/report/:id", authMiddleware, async (req, res) => {
+  try {
+    const resume = await Resume.findOne({ _id: req.params.id, user: req.userId });
     if (!resume) return res.status(404).json({ message: "Resume not found." });
     res.json(resume);
   } catch (err) {
-    console.error("Report fetch error:", err);
     res.status(500).json({ message: err.message || "Internal server error." });
   }
 });

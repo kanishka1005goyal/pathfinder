@@ -38,8 +38,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Only the chat router — nothing else
-app.include_router(chat.router)
+# main.py
+app.include_router(chat.router)  # remove prefix="/api/chat"
 
 # Algorithmic resume parser — no AI required
 app.include_router(parse_resume.router)

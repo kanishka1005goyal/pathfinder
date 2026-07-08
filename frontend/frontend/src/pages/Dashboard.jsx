@@ -105,20 +105,48 @@ export default function Dashboard() {
   const [interviewResumeId, setInterviewResumeId] = useState('');
   const [interviewTargetRole, setInterviewTargetRole] = useState('');
 
-  const sendMessage = () => {
+ const [chatLoading, setChatLoading] = useState(false);
+const CHAT_API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/chat/";
+
+const sendMessage = async () => {
     const text = chatInput.trim();
     if (!text) return;
     const userMsg = { id: Date.now(), sender: "user", text };
-    setMessages((prev) => [...prev, userMsg]);
+    const updatedMessages = [...messages, userMsg];
+    setMessages(updatedMessages);
     setChatInput("");
-    setTimeout(() => {
+    setChatLoading(true);
+
+    const chatHistory = updatedMessages.slice(-10).map((m) => ({
+      role: m.sender === "user" ? "user" : "assistant",
+      content: m.text,
+    }));
+
+    try {
+      const res = await axios.post(CHAT_API_URL, {
+        message: text,
+        history: chatHistory,
+        resumeText: localStorage.getItem("resumeText"),
+      });
       setMessages((prev) => [
         ...prev,
-        { id: Date.now() + 1, sender: "bot", text: "Thanks for your message! This is a placeholder reply — connect the chatbot backend to enable real responses." },
+        { id: Date.now() + 1, sender: "bot", text: res.data.reply },
       ]);
-    }, 600);
+    } catch (error) {
+      console.error("Chat error:", error);
+      const detail =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        error.message ||
+        "Unknown error";
+      setMessages((prev) => [
+        ...prev,
+        { id: Date.now() + 1, sender: "bot", text: `Error: ${detail}` },
+      ]);
+    } finally {
+      setChatLoading(false);
+    }
   };
-
   const handleChatKeyDown = (e) => { if (e.key === "Enter") sendMessage(); };
 
   const confirmLogout = () => {
@@ -482,11 +510,12 @@ export default function Dashboard() {
             <div style={{ background: "#1e293b", borderRadius: 12, border: "1px solid #334155", maxWidth: 500, display: "flex", flexDirection: "column", height: 480 }}>
               <div style={{ flex: 1, overflowY: "auto", padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
                 {messages.length === 0 && <p style={{ color: "#64748b", fontSize: 13, textAlign: "center", marginTop: 40 }}>Ask me anything about your resume, skills, or job search 👋</p>}
-                {messages.map(m => (
+             {messages.map(m => (
                   <div key={m.id} style={{ alignSelf: m.sender === "user" ? "flex-end" : "flex-start", background: m.sender === "user" ? "#6366f1" : "#0f172a", color: m.sender === "user" ? "#fff" : "#e2e8f0", border: m.sender === "user" ? "none" : "1px solid #334155", borderRadius: 12, padding: "10px 14px", fontSize: 13, maxWidth: "80%" }}>
                     {m.text}
                   </div>
                 ))}
+                {chatLoading && <p style={{ color: "#64748b", fontSize: 13 }}>AI is thinking...</p>}
               </div>
               <div style={{ display: "flex", gap: 8, padding: 16, borderTop: "1px solid #334155" }}>
                 <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={handleChatKeyDown} placeholder="Type your message..."

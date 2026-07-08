@@ -13,11 +13,15 @@ import userRoutes from "./routes/userRoutes.js";
 import resumeRoutes from "./routes/resumeRoutes.js";
 import skillGapRoutes from "./routes/skillGapRoutes.js";
 import { admin, adminRouter } from "./admin.js";
+
 const app = express();
 
 app.use(cors());
-
 app.use(express.json());
+
+app.get("/", (req, res) => {
+  res.send("PathFinder Backend is Running 🚀");
+});
 
 
 if (!process.env.GROQ_API_KEY) {
@@ -49,8 +53,10 @@ mongoose.connect(process.env.MONGO_URI)
     console.log("✅ Express server running on port 5000 (auth + resume)");
 
     console.log("➡️  Chat handled by FastAPI on port 8000");
+const PORT = process.env.PORT || 5000;
 
-  app.listen(5000, () => console.log('Server running on port 5000'));
-  })
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
   .catch((err) => console.error("❌ DB connection error:", err));

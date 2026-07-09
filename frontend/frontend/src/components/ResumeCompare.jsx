@@ -16,10 +16,10 @@ export default function ResumeCompare({ history }) {
     const token = localStorage.getItem('token'); // ya jo bhi key use karti ho token store karne ke liye
 
     const [resA, resB] = await Promise.all([
-      axios.get(`http://localhost:5000/api/resume/report/${idA}`, {
+      axios.get(`${import.meta.env.VITE_API_URL}/api/resume/report/${idA}`, {
         headers: { Authorization: `Bearer ${token}` }
       }),
-      axios.get(`http://localhost:5000/api/resume/report/${idB}`, {
+      axios.get(`${import.meta.env.VITE_API_URL}/api/resume/report/${idB}`, {
         headers: { Authorization: `Bearer ${token}` }
       }),
     ]);

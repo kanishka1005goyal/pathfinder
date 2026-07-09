@@ -15,7 +15,7 @@ export default function ATSReport() {
     if (!resumeId) return;
     const fetchReport = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/resume/report/${resumeId}`);
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/resume/report/${resumeId}`);
         setResume(res.data);
       } catch (err) {
         setError("Could not load report.");

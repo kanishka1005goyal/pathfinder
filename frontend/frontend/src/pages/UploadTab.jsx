@@ -62,7 +62,7 @@ export default function UploadTab() {
 
       const token = localStorage.getItem("token");   // ← ye line add karo
 
-      const res = await axios.post("http://localhost:5000/api/resume/upload", formData, {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/resume/upload`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,           // ← ye line add karo

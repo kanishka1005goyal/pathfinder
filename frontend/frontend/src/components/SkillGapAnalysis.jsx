@@ -18,7 +18,7 @@ export default function SkillGapAnalysis({ resumeId }) {
     try {
       const token = localStorage.getItem('token');
       const res = await axios.post(
-        `http://localhost:5000/api/skill-gap/analyze`,
+        `${import.meta.env.VITE_API_URL}/api/skill-gap/analyze`,
         { resumeId, targetRole },
         { headers: { Authorization: `Bearer ${token}` } }
       );

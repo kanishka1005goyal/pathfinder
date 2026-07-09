@@ -16,7 +16,7 @@ export default function MockInterview({ resumeId, targetRole }) {
     setStarted(true);
     setLoading(true);
     try {
-      const res = await axios.post('http://localhost:5000/api/skill-gap/mock-interview', {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/skill-gap/mock-interview`, {
         resumeId, targetRole, conversationHistory: []
       });
       setMessages([{ role: 'assistant', content: res.data.reply }]);
@@ -37,7 +37,7 @@ export default function MockInterview({ resumeId, targetRole }) {
     setLoading(true);
 
     try {
-      const res = await axios.post('http://localhost:5000/api/skill-gap/mock-interview', {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/skill-gap/mock-interview`, {
         resumeId, targetRole, conversationHistory: updated
       });
       setMessages([...updated, { role: 'assistant', content: res.data.reply }]);

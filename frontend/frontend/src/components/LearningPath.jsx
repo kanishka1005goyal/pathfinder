@@ -10,7 +10,7 @@ export default function LearningPath({ missingSkills }) {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.post('http://localhost:5000/api/skill-gap/learning-path', {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/skill-gap/learning-path`, {
         missingSkills
       });
       setPlan(res.data.learningPlan);

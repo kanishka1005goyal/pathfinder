@@ -40,9 +40,9 @@ export default function Dashboard() {
     const loadDashboard = async () => {
       try {
         const [userRes, historyRes, statsRes] = await Promise.all([
-          axios.get("http://localhost:5000/api/user/me", authHeader),
-          axios.get("http://localhost:5000/api/resume/history", authHeader),
-          axios.get("http://localhost:5000/api/user/stats", authHeader),
+          axios.get(`${import.meta.env.VITE_API_URL}/api/user/me`, authHeader),
+          axios.get(`${import.meta.env.VITE_API_URL}/api/resume/history`, authHeader),
+          axios.get(`${import.meta.env.VITE_API_URL}/api/user/stats`, authHeader),
         ]);
         setCurrentUser(userRes.data);
         setHistory(historyRes.data);
@@ -82,7 +82,7 @@ export default function Dashboard() {
   const handleProfileSave = async () => {
     try {
       const res = await axios.put(
-        "http://localhost:5000/api/user/profile",
+        `${import.meta.env.VITE_API_URL}/api/user/profile`,
         { name: profile.name, phone: profile.phone, location: profile.location },
         authHeader
       );

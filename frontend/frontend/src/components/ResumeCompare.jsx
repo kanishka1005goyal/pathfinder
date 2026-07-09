@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 const scoreColor = (s) => (s >= 75 ? "#22c55e" : s >= 50 ? "#f59e0b" : "#ef4444");
 
@@ -10,27 +10,27 @@ export default function ResumeCompare({ history }) {
   const [resumeB, setResumeB] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (idA && idB && idA !== idB) {
-      fetchBoth();
-    }
-  }, [idA, idB]);
-
   const fetchBoth = async () => {
-    setLoading(true);
-    try {
-      const [resA, resB] = await Promise.all([
-        axios.get(`http://localhost:5000/api/resume/report/${idA}`),
-        axios.get(`http://localhost:5000/api/resume/report/${idB}`),
-      ]);
-      setResumeA(resA.data);
-      setResumeB(resB.data);
-    } catch (err) {
-      console.error('Compare fetch error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+  try {
+    const token = localStorage.getItem('token'); // ya jo bhi key use karti ho token store karne ke liye
+
+    const [resA, resB] = await Promise.all([
+      axios.get(`http://localhost:5000/api/resume/report/${idA}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }),
+      axios.get(`http://localhost:5000/api/resume/report/${idB}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }),
+    ]);
+    setResumeA(resA.data);
+    setResumeB(resB.data);
+  } catch (err) {
+    console.error('Compare fetch error:', err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const renderBreakdownRow = (label, keyName) => {
     const a = resumeA?.breakdown?.[keyName] ?? 0;
@@ -52,9 +52,11 @@ export default function ResumeCompare({ history }) {
     );
   };
 
+  const canCompare = idA && idB && idA !== idB;
+
   return (
     <div>
-      <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+      <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
         <select value={idA} onChange={(e) => setIdA(e.target.value)}
           style={{
             flex: 1, background: "#1e293b", border: "1px solid #334155",
@@ -74,11 +76,25 @@ export default function ResumeCompare({ history }) {
         </select>
       </div>
 
+      <button
+        onClick={fetchBoth}
+        disabled={!canCompare || loading}
+        style={{
+          width: "100%", marginBottom: 20, padding: "12px 20px",
+          background: canCompare ? "linear-gradient(90deg, #a855f7, #ec4899)" : "#334155",
+          color: "#fff", border: "none", borderRadius: 8,
+          fontSize: 14, fontWeight: 700,
+          cursor: canCompare && !loading ? "pointer" : "not-allowed",
+          opacity: loading ? 0.7 : 1,
+          transition: "opacity 0.2s ease"
+        }}
+      >
+        {loading ? "Comparing..." : "Compare Resumes"}
+      </button>
+
       {idA && idB && idA === idB && (
         <p style={{ color: "#f59e0b", fontSize: 13 }}>Please select two different resumes.</p>
       )}
-
-      {loading && <p style={{ color: "#64748b", fontSize: 13 }}>Loading comparison...</p>}
 
       {resumeA && resumeB && idA !== idB && (
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>

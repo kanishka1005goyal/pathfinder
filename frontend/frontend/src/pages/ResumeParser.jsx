@@ -4,7 +4,7 @@ import axios from "axios";
 const scoreColor = (s) =>
   s >= 75 ? "#22c55e" : s >= 50 ? "#f59e0b" : "#ef4444";
 
-const PYTHON_API = "http://localhost:8000";
+const PYTHON_API = import.meta.env.VITE_FASTAPI_URL;
 
 // ── Small reusable badge ─────────────────────────────────────────────────────
 function Badge({ label, color = "#6366f1" }) {

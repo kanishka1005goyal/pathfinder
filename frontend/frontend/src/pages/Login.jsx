@@ -33,6 +33,7 @@ const Login = () => {
     } finally {
       setLoading(false);
     }
+    console.log(import.meta.env.VITE_API_URL)
   };
  
   return (

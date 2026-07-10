@@ -1,7 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import ReactMarkdown from "react-markdown";
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/chat/";
+const API_URL = import.meta.env.VITE_FASTAPI_URL || "http://localhost:8000/api/chat/";
 
 console.log("API URL:", API_URL);
 

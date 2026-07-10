@@ -106,7 +106,8 @@ export default function Dashboard() {
   const [interviewTargetRole, setInterviewTargetRole] = useState('');
 
  const [chatLoading, setChatLoading] = useState(false);
-const CHAT_API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/chat/";
+
+const CHAT_API_URL = `${import.meta.env.VITE_FASTAPI_URL}/api/chat/`;
 
 const sendMessage = async () => {
     const text = chatInput.trim();
